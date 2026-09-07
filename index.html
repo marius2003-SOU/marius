@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduSmart - Gestion Scolaire Sécurisée</title>
+    <!-- Ignorer la requête favicon 404 -->
+    <link rel="icon" href="data:,">
+    <!-- Config Tailwind pour masquer l'avertissement dev -->
+    <script>
+        window.tailwind = { config: { suppressDeprecationWarnings: true } };
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -207,12 +213,14 @@
     </main>
 
     <script>
-        // ⚠️ Remplace ces deux valeurs par celles de ton projet Supabase (Settings > API)
+        // ⚠️ Configuration Supabase
         const SUPABASE_URL = "https://krikondxbeexmjruybeo.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtyaWtvbmR4YmVleG1qcnV5YmVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MzUyNzcsImV4cCI6MjEwNDExMTI3N30.QvFXypjUO_NFv4B-zFCzEsecRABGL8c_kVokzxuzHv8";
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // Modification : Déclaration du client sous le nom supabaseClient
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const DOMAINE_TECHNIQUE = "@edusmart.local"; // email technique invisible basé sur le téléphone
+        const DOMAINE_TECHNIQUE = "@edusmart.local";
         let currentUser = null;
 
         function telephoneVersEmail(tel) {
@@ -241,10 +249,10 @@
         // --- SESSION : reste connecté après rechargement de page ---
         async function initSession() {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
+                const { data: { session } } = await supabaseClient.auth.getSession();
 
                 if (session) {
-                    const { data: userProfile } = await supabase.from('utilisateurs').select('*').eq('id', session.user.id).single();
+                    const { data: userProfile } = await supabaseClient.from('utilisateurs').select('*').eq('id', session.user.id).single();
                     if (userProfile) {
                         currentUser = userProfile;
                         setupDashboard();
@@ -266,7 +274,7 @@
             const phone = document.getElementById('login-phone').value.trim();
             const password = document.getElementById('login-password').value;
 
-            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+            const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
                 email: telephoneVersEmail(phone),
                 password: password
             });
@@ -276,7 +284,7 @@
                 return;
             }
 
-            const { data: userProfile, error: profileError } = await supabase
+            const { data: userProfile, error: profileError } = await supabaseClient
                 .from('utilisateurs').select('*').eq('id', authData.user.id).single();
 
             if (profileError || !userProfile) {
@@ -300,14 +308,14 @@
             const codeProf = document.getElementById('reg-code-prof').value.trim();
 
             if (role === 'PROFESSEUR') {
-                const { data: codeValide } = await supabase.rpc('verifier_code_prof', { input_code: codeProf });
+                const { data: codeValide } = await supabaseClient.rpc('verifier_code_prof', { input_code: codeProf });
                 if (!codeValide) {
                     showAuthError("Code professeur invalide.");
                     return;
                 }
             }
 
-            const { data: authData, error: authError } = await supabase.auth.signUp({
+            const { data: authData, error: authError } = await supabaseClient.auth.signUp({
                 email: telephoneVersEmail(phone),
                 password: password
             });
@@ -318,7 +326,7 @@
             }
 
             if (authData.user) {
-                const { error: profileError } = await supabase
+                const { error: profileError } = await supabaseClient
                     .from('utilisateurs')
                     .insert([{ id: authData.user.id, nom, prenom, telephone: phone, role }]);
 
@@ -355,19 +363,19 @@
         }
 
         async function logout() {
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
             location.reload();
         }
 
         async function chargerClassesInSelect(selectId) {
-            const { data: classes } = await supabase.from('classes').select('id, nom_classe');
+            const { data: classes } = await supabaseClient.from('classes').select('id, nom_classe');
             const select = document.getElementById(selectId);
             select.innerHTML = '<option value="">Choisir une classe...</option>';
             if (classes) classes.forEach(c => { select.innerHTML += `<option value="${c.id}">${c.nom_classe}</option>`; });
         }
 
         async function chargerMatieresInSelect(selectId) {
-            const { data: matieres } = await supabase.from('matieres').select('id, nom_matiere');
+            const { data: matieres } = await supabaseClient.from('matieres').select('id, nom_matiere');
             const select = document.getElementById(selectId);
             select.innerHTML = '<option value="">Choisir une matière...</option>';
             if (matieres) matieres.forEach(m => { select.innerHTML += `<option value="${m.id}">${m.nom_matiere}</option>`; });
@@ -382,7 +390,7 @@
             const code_secret_parent = document.getElementById('eleve-code-parent').value.trim();
             const classe_id = document.getElementById('eleve-classe-id').value;
 
-            const { error } = await supabase.from('eleves').insert([{ nom, prenom, matricule, date_naissance, code_secret_parent, classe_id }]);
+            const { error } = await supabaseClient.from('eleves').insert([{ nom, prenom, matricule, date_naissance, code_secret_parent, classe_id }]);
 
             if (error) {
                 alert("Erreur lors de l'ajout : " + error.message);
@@ -398,7 +406,7 @@
             const classe_id = document.getElementById('affect-classe-id').value;
             const matiere_id = document.getElementById('affect-matiere-id').value;
 
-            const { data: prof, error: profError } = await supabase
+            const { data: prof, error: profError } = await supabaseClient
                 .from('utilisateurs').select('id, role').eq('telephone', telProf).single();
 
             if (profError || !prof || prof.role !== 'PROFESSEUR') {
@@ -406,7 +414,7 @@
                 return;
             }
 
-            const { error } = await supabase.from('affectations_profs').insert([{ prof_id: prof.id, classe_id, matiere_id }]);
+            const { error } = await supabaseClient.from('affectations_profs').insert([{ prof_id: prof.id, classe_id, matiere_id }]);
             if (error) {
                 alert("Erreur : " + error.message);
             } else {
@@ -421,7 +429,7 @@
                 eleveSelect.innerHTML = '<option value="">Choisir d\'abord une classe</option>';
                 return;
             }
-            const { data: eleves } = await supabase.from('eleves').select('id, nom, prenom, matricule').eq('classe_id', classeId);
+            const { data: eleves } = await supabaseClient.from('eleves').select('id, nom, prenom, matricule').eq('classe_id', classeId);
             eleveSelect.innerHTML = '<option value="">Choisir un élève...</option>';
             if (eleves) eleves.forEach(e => { eleveSelect.innerHTML += `<option value="${e.id}">${e.nom} ${e.prenom} (${e.matricule})</option>`; });
         }
@@ -435,7 +443,7 @@
             const trimestre = parseInt(document.getElementById('note-trimestre').value);
             const appreciation = document.getElementById('note-appreciation').value.trim();
 
-            const { error } = await supabase.from('notes').insert([{
+            const { error } = await supabaseClient.from('notes').insert([{
                 eleve_id, matiere_id, prof_id: currentUser.id, note, coefficient, trimestre, appreciation
             }]);
 
@@ -452,7 +460,7 @@
             const matricule = document.getElementById('rat-matricule').value.trim();
             const codeSecret = document.getElementById('rat-code').value.trim();
 
-            const { data, error } = await supabase.rpc('rattacher_eleve_parent', {
+            const { data, error } = await supabaseClient.rpc('rattacher_eleve_parent', {
                 p_parent_id: currentUser.id,
                 p_matricule: matricule,
                 p_code_secret: codeSecret
@@ -471,7 +479,7 @@
             const container = document.getElementById('parent-enfants-container');
             container.innerHTML = "";
 
-            const { data: enfants } = await supabase
+            const { data: enfants } = await supabaseClient
                 .from('eleves')
                 .select('*, classes(nom_classe), notes(*, matieres(nom_matiere))')
                 .eq('parent_id', currentUser.id);
