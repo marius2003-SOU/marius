@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduSmart - Gestion Scolaire Sécurisée</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="h-full text-slate-800 flex flex-col antialiased">
+
+    <!-- EN-TÊTE -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold text-xl shadow-md">E</div>
+                <div>
+                    <span class="font-bold text-slate-900 tracking-tight text-lg">EduSmart</span>
+                    <span class="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-medium ml-2">Portail Sécurisé</span>
+                </div>
+            </div>
+            <div id="nav-user-info" class="hidden flex items-center gap-4">
+                <div class="text-right">
+                    <p id="user-display-name" class="text-sm font-semibold text-slate-800 leading-tight"></p>
+                    <p id="user-display-role" class="text-xs font-medium text-indigo-600 uppercase"></p>
+                </div>
+                <button onclick="logout()" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Déconnexion">🚪</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
+
+        <!-- Message de chargement initial -->
+        <div id="loading-screen" class="text-center py-20 text-slate-400 text-sm">Chargement...</div>
+
+        <!-- SECTION AUTHENTIFICATION -->
+        <section id="auth-section" class="max-w-md mx-auto my-8 hidden">
+            <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-xl">
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-900">Espace Sécurisé</h2>
+                    <p class="text-sm text-slate-500 mt-1">Connectez-vous à votre compte</p>
+                </div>
+
+                <div class="grid grid-cols-2 p-1 bg-slate-100 rounded-xl mb-6 text-sm font-medium">
+                    <button type="button" id="tab-login" onclick="switchAuthTab('login')" class="py-2.5 rounded-lg bg-white shadow-sm text-slate-900 transition">Connexion</button>
+                    <button type="button" id="tab-register" onclick="switchAuthTab('register')" class="py-2.5 rounded-lg text-slate-500 hover:text-slate-900 transition">Inscription</button>
+                </div>
+
+                <!-- Formulaire Connexion -->
+                <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Numéro de téléphone</label>
+                        <input type="text" id="login-phone" placeholder="ex: 70000000" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Mot de Passe</label>
+                        <input type="password" id="login-password" placeholder="••••••••" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition text-sm">Se connecter</button>
+                </form>
+
+                <!-- Formulaire Inscription -->
+                <form id="form-register" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nom</label>
+                            <input type="text" id="reg-nom" required class="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Prénom</label>
+                            <input type="text" id="reg-prenom" required class="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Téléphone</label>
+                        <input type="text" id="reg-phone" placeholder="ex: 70000000" required class="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Mot de Passe</label>
+                        <input type="password" id="reg-password" minlength="6" placeholder="Au moins 6 caractères" required class="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Rôle</label>
+                        <select id="reg-role" onchange="toggleCodeProf()" class="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none text-sm bg-white">
+                            <option value="PARENT">Parent d'élève</option>
+                            <option value="PROFESSEUR">Enseignant / Professeur</option>
+                        </select>
+                    </div>
+                    <div id="bloc-code-prof" class="hidden">
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Code Professeur</label>
+                        <input type="text" id="reg-code-prof" placeholder="Fourni par la direction" class="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none text-sm">
+                    </div>
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl transition text-sm">Créer mon compte</button>
+                </form>
+
+                <div id="auth-error" class="mt-4 p-3 bg-rose-50 border border-rose-100 rounded-xl text-xs font-medium text-rose-600 text-center hidden"></div>
+            </div>
+        </section>
+
+        <!-- ESPACE DIRECTION / ADMIN -->
+        <section id="dashboard-admin" class="space-y-8 hidden">
+            <div class="bg-slate-900 rounded-2xl p-6 text-white shadow-xl flex justify-between items-center">
+                <div>
+                    <span class="text-xs uppercase tracking-widest text-indigo-300 font-semibold">Administration</span>
+                    <h2 class="text-2xl font-bold mt-1">Espace Direction</h2>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-slate-900 text-base mb-4">Inscrire un nouvel élève</h3>
+                <form id="form-ajout-eleve" onsubmit="handleAjoutEleve(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input type="text" id="eleve-nom" placeholder="Nom de l'élève" required class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
+                    <input type="text" id="eleve-prenom" placeholder="Prénom de l'élève" required class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
+                    <input type="text" id="eleve-matricule" placeholder="Matricule (ex: MAT-2026)" required class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
+                    <input type="date" id="eleve-date-naissance" required class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
+                    <input type="text" id="eleve-code-parent" placeholder="Code secret parent (ex: 4821)" required class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
+                    <select id="eleve-classe-id" required class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
+                        <option value="">Chargement des classes...</option>
+                    </select>
+                    <button type="submit" class="md:col-span-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition text-sm">Enregistrer l'élève</button>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-slate-900 text-base mb-4">Affecter un professeur à une classe / matière</h3>
+                <form id="form-affectation" onsubmit="handleAffectation(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <input type="text" id="affect-tel-prof" placeholder="Téléphone du professeur" required class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
+                    <select id="affect-classe-id" required class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
+                        <option value="">Classe...</option>
+                    </select>
+                    <select id="affect-matiere-id" required class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
+                        <option value="">Matière...</option>
+                    </select>
+                    <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl transition text-sm">Affecter</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- ESPACE ENSEIGNANT -->
+        <section id="dashboard-prof" class="max-w-3xl mx-auto space-y-6 hidden">
+            <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
+                <h2 class="text-2xl font-bold text-slate-900 mb-6">Saisie des Évaluations</h2>
+                <form id="form-saisie-note" onsubmit="handleSaisieNote(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">1. Sélectionner la Classe</label>
+                        <select id="note-classe-id" onchange="chargerElevesDuProf(this.value)" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
+                            <option value="">Choisir une classe...</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">2. Sélectionner l'Élève</label>
+                            <select id="note-eleve-id" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
+                                <option value="">Choisir d'abord une classe</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">3. Sélectionner la Matière</label>
+                            <select id="note-matiere-id" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
+                                <option value="">Chargement des matières...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Note (/20)</label>
+                            <input type="number" step="0.25" min="0" max="20" id="note-valeur" required placeholder="ex: 15.5" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm font-bold text-indigo-600">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Coefficient</label>
+                            <input type="number" min="1" max="10" id="note-coefficient" value="1" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Trimestre</label>
+                            <select id="note-trimestre" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
+                                <option value="1">Trimestre 1</option>
+                                <option value="2">Trimestre 2</option>
+                                <option value="3">Trimestre 3</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Appréciation</label>
+                        <input type="text" id="note-appreciation" placeholder="Travail sérieux" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm">
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition text-sm">Enregistrer la Note</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- ESPACE PARENT -->
+        <section id="dashboard-parent" class="space-y-8 hidden">
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-slate-900 text-sm uppercase mb-3">Rattacher un enfant</h3>
+                <form id="form-rattacher" onsubmit="handleRattacherEnfant(event)" class="flex flex-col sm:flex-row gap-3">
+                    <input type="text" id="rat-matricule" placeholder="Matricule (ex: MAT-2026)" required class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
+                    <input type="password" id="rat-code" placeholder="Code secret parent" required class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
+                    <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-6 py-2.5 rounded-xl transition text-sm">Lier l'enfant</button>
+                </form>
+            </div>
+            <div id="parent-enfants-container" class="grid grid-cols-1 gap-6"></div>
+        </section>
+
+    </main>
+
+    <script>
+        // ⚠️ Remplace ces deux valeurs par celles de ton projet Supabase (Settings > API)
+        const SUPABASE_URL = "https://krikondxbeexmjruybeo.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtyaWtvbmR4YmVleG1qcnV5YmVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MzUyNzcsImV4cCI6MjEwNDExMTI3N30.QvFXypjUO_NFv4B-zFCzEsecRABGL8c_kVokzxuzHv8";
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const DOMAINE_TECHNIQUE = "@edusmart.local"; // email technique invisible basé sur le téléphone
+        let currentUser = null;
+
+        function telephoneVersEmail(tel) {
+            return tel.replace(/\s+/g, '') + DOMAINE_TECHNIQUE;
+        }
+
+        function toggleCodeProf() {
+            const isProf = document.getElementById('reg-role').value === 'PROFESSEUR';
+            document.getElementById('bloc-code-prof').classList.toggle('hidden', !isProf);
+            document.getElementById('reg-code-prof').required = isProf;
+        }
+
+        function switchAuthTab(tab) {
+            document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
+            document.getElementById('form-register').classList.toggle('hidden', tab !== 'register');
+            document.getElementById('tab-login').className = tab === 'login' ? "py-2.5 rounded-lg bg-white shadow-sm text-slate-900 transition" : "py-2.5 rounded-lg text-slate-500 hover:text-slate-900 transition";
+            document.getElementById('tab-register').className = tab === 'register' ? "py-2.5 rounded-lg bg-white shadow-sm text-slate-900 transition" : "py-2.5 rounded-lg text-slate-500 hover:text-slate-900 transition";
+        }
+
+        function showAuthError(msg) {
+            const errElem = document.getElementById('auth-error');
+            errElem.textContent = msg;
+            errElem.classList.toggle('hidden', !msg);
+        }
+
+        // --- SESSION : reste connecté après rechargement de page ---
+        async function initSession() {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+
+                if (session) {
+                    const { data: userProfile } = await supabase.from('utilisateurs').select('*').eq('id', session.user.id).single();
+                    if (userProfile) {
+                        currentUser = userProfile;
+                        setupDashboard();
+                        return;
+                    }
+                }
+            } catch (err) {
+                showAuthError("Connexion à Supabase impossible. Vérifie SUPABASE_URL et SUPABASE_ANON_KEY dans le code.");
+                console.error(err);
+            } finally {
+                document.getElementById('loading-screen').classList.add('hidden');
+                document.getElementById('auth-section').classList.remove('hidden');
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            showAuthError("");
+            const phone = document.getElementById('login-phone').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                email: telephoneVersEmail(phone),
+                password: password
+            });
+
+            if (authError) {
+                showAuthError("Numéro ou mot de passe incorrect.");
+                return;
+            }
+
+            const { data: userProfile, error: profileError } = await supabase
+                .from('utilisateurs').select('*').eq('id', authData.user.id).single();
+
+            if (profileError || !userProfile) {
+                showAuthError("Impossible de charger votre profil.");
+                return;
+            }
+
+            currentUser = userProfile;
+            setupDashboard();
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            showAuthError("");
+
+            const nom = document.getElementById('reg-nom').value.trim();
+            const prenom = document.getElementById('reg-prenom').value.trim();
+            const phone = document.getElementById('reg-phone').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const role = document.getElementById('reg-role').value;
+            const codeProf = document.getElementById('reg-code-prof').value.trim();
+
+            if (role === 'PROFESSEUR') {
+                const { data: codeValide } = await supabase.rpc('verifier_code_prof', { input_code: codeProf });
+                if (!codeValide) {
+                    showAuthError("Code professeur invalide.");
+                    return;
+                }
+            }
+
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: telephoneVersEmail(phone),
+                password: password
+            });
+
+            if (authError) {
+                showAuthError("Erreur d'inscription : " + authError.message);
+                return;
+            }
+
+            if (authData.user) {
+                const { error: profileError } = await supabase
+                    .from('utilisateurs')
+                    .insert([{ id: authData.user.id, nom, prenom, telephone: phone, role }]);
+
+                if (profileError) {
+                    showAuthError("Erreur création profil : " + profileError.message);
+                    return;
+                }
+
+                alert("Compte créé avec succès ! Vous pouvez vous connecter.");
+                switchAuthTab('login');
+                document.getElementById('form-register').reset();
+            }
+        }
+
+        function setupDashboard() {
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('nav-user-info').classList.remove('hidden');
+            document.getElementById('user-display-name').textContent = `${currentUser.prenom} ${currentUser.nom}`;
+            document.getElementById('user-display-role').textContent = currentUser.role;
+
+            if (currentUser.role === 'ADMIN') {
+                document.getElementById('dashboard-admin').classList.remove('hidden');
+                chargerClassesInSelect('eleve-classe-id');
+                chargerClassesInSelect('affect-classe-id');
+                chargerMatieresInSelect('affect-matiere-id');
+            } else if (currentUser.role === 'PROFESSEUR') {
+                document.getElementById('dashboard-prof').classList.remove('hidden');
+                chargerClassesInSelect('note-classe-id');
+                chargerMatieresInSelect('note-matiere-id');
+            } else if (currentUser.role === 'PARENT') {
+                document.getElementById('dashboard-parent').classList.remove('hidden');
+                loadParentDashboard();
+            }
+        }
+
+        async function logout() {
+            await supabase.auth.signOut();
+            location.reload();
+        }
+
+        async function chargerClassesInSelect(selectId) {
+            const { data: classes } = await supabase.from('classes').select('id, nom_classe');
+            const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">Choisir une classe...</option>';
+            if (classes) classes.forEach(c => { select.innerHTML += `<option value="${c.id}">${c.nom_classe}</option>`; });
+        }
+
+        async function chargerMatieresInSelect(selectId) {
+            const { data: matieres } = await supabase.from('matieres').select('id, nom_matiere');
+            const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">Choisir une matière...</option>';
+            if (matieres) matieres.forEach(m => { select.innerHTML += `<option value="${m.id}">${m.nom_matiere}</option>`; });
+        }
+
+        async function handleAjoutEleve(e) {
+            e.preventDefault();
+            const nom = document.getElementById('eleve-nom').value.trim();
+            const prenom = document.getElementById('eleve-prenom').value.trim();
+            const matricule = document.getElementById('eleve-matricule').value.trim();
+            const date_naissance = document.getElementById('eleve-date-naissance').value;
+            const code_secret_parent = document.getElementById('eleve-code-parent').value.trim();
+            const classe_id = document.getElementById('eleve-classe-id').value;
+
+            const { error } = await supabase.from('eleves').insert([{ nom, prenom, matricule, date_naissance, code_secret_parent, classe_id }]);
+
+            if (error) {
+                alert("Erreur lors de l'ajout : " + error.message);
+            } else {
+                alert("Élève inscrit !");
+                document.getElementById('form-ajout-eleve').reset();
+            }
+        }
+
+        async function handleAffectation(e) {
+            e.preventDefault();
+            const telProf = document.getElementById('affect-tel-prof').value.trim();
+            const classe_id = document.getElementById('affect-classe-id').value;
+            const matiere_id = document.getElementById('affect-matiere-id').value;
+
+            const { data: prof, error: profError } = await supabase
+                .from('utilisateurs').select('id, role').eq('telephone', telProf).single();
+
+            if (profError || !prof || prof.role !== 'PROFESSEUR') {
+                alert("Aucun professeur trouvé avec ce numéro.");
+                return;
+            }
+
+            const { error } = await supabase.from('affectations_profs').insert([{ prof_id: prof.id, classe_id, matiere_id }]);
+            if (error) {
+                alert("Erreur : " + error.message);
+            } else {
+                alert("Affectation créée !");
+                document.getElementById('form-affectation').reset();
+            }
+        }
+
+        async function chargerElevesDuProf(classeId) {
+            const eleveSelect = document.getElementById('note-eleve-id');
+            if (!classeId) {
+                eleveSelect.innerHTML = '<option value="">Choisir d\'abord une classe</option>';
+                return;
+            }
+            const { data: eleves } = await supabase.from('eleves').select('id, nom, prenom, matricule').eq('classe_id', classeId);
+            eleveSelect.innerHTML = '<option value="">Choisir un élève...</option>';
+            if (eleves) eleves.forEach(e => { eleveSelect.innerHTML += `<option value="${e.id}">${e.nom} ${e.prenom} (${e.matricule})</option>`; });
+        }
+
+        async function handleSaisieNote(e) {
+            e.preventDefault();
+            const eleve_id = document.getElementById('note-eleve-id').value;
+            const matiere_id = parseInt(document.getElementById('note-matiere-id').value);
+            const note = parseFloat(document.getElementById('note-valeur').value);
+            const coefficient = parseInt(document.getElementById('note-coefficient').value);
+            const trimestre = parseInt(document.getElementById('note-trimestre').value);
+            const appreciation = document.getElementById('note-appreciation').value.trim();
+
+            const { error } = await supabase.from('notes').insert([{
+                eleve_id, matiere_id, prof_id: currentUser.id, note, coefficient, trimestre, appreciation
+            }]);
+
+            if (error) {
+                alert("Erreur : " + error.message);
+            } else {
+                alert("Note enregistrée !");
+                document.getElementById('form-saisie-note').reset();
+            }
+        }
+
+        async function handleRattacherEnfant(e) {
+            e.preventDefault();
+            const matricule = document.getElementById('rat-matricule').value.trim();
+            const codeSecret = document.getElementById('rat-code').value.trim();
+
+            const { data, error } = await supabase.rpc('rattacher_eleve_parent', {
+                p_parent_id: currentUser.id,
+                p_matricule: matricule,
+                p_code_secret: codeSecret
+            });
+
+            if (error || !data) {
+                alert("Rattachement échoué. Code ou matricule invalide.");
+            } else {
+                alert("Enfant rattaché !");
+                document.getElementById('form-rattacher').reset();
+                loadParentDashboard();
+            }
+        }
+
+        async function loadParentDashboard() {
+            const container = document.getElementById('parent-enfants-container');
+            container.innerHTML = "";
+
+            const { data: enfants } = await supabase
+                .from('eleves')
+                .select('*, classes(nom_classe), notes(*, matieres(nom_matiere))')
+                .eq('parent_id', currentUser.id);
+
+            if (!enfants || enfants.length === 0) {
+                container.innerHTML = `<div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-400 text-sm">Aucun élève rattaché.</div>`;
+                return;
+            }
+
+            enfants.forEach(e => {
+                let notesHTML = "";
+                if (e.notes && e.notes.length > 0) {
+                    e.notes.forEach(n => {
+                        notesHTML += `<tr class="border-b border-slate-100">
+                            <td class="py-3 font-semibold">${n.matieres ? n.matieres.nom_matiere : 'Matière'}</td>
+                            <td class="py-3 text-xs text-slate-500">${n.appreciation || '-'}</td>
+                            <td class="py-3 text-right font-bold text-indigo-600">${n.note}/20 (Coeff ${n.coefficient || 1})</td>
+                        </tr>`;
+                    });
+                } else {
+                    notesHTML = `<tr><td colspan="3" class="py-4 text-center text-xs text-slate-400 italic">Aucune note.</td></tr>`;
+                }
+
+                container.innerHTML += `
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+                        <div class="border-b border-slate-100 pb-3">
+                            <h4 class="text-xl font-bold text-slate-900">${e.prenom} ${e.nom}</h4>
+                            <p class="text-xs text-slate-400">Matricule: ${e.matricule} • Classe: ${e.classes ? e.classes.nom_classe : 'Non assignée'}</p>
+                        </div>
+                        <table class="w-full text-left text-sm">
+                            <thead><tr class="text-xs text-slate-400 border-b border-slate-100">
+                                <th class="pb-2">Matière</th><th class="pb-2">Appréciation</th><th class="pb-2 text-right">Note</th>
+                            </tr></thead>
+                            <tbody>${notesHTML}</tbody>
+                        </table>
+                    </div>`;
+            });
+        }
+
+        initSession();
+    </script>
+</body>
+</html>
