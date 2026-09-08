@@ -146,71 +146,67 @@
         </section>
 
         <!-- ESPACE ENSEIGNANT -->
-        <section id="dashboard-prof" class="max-w-3xl mx-auto space-y-6 hidden">
+        <section id="dashboard-prof" class="max-w-4xl mx-auto space-y-6 hidden">
             <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
                 <h2 class="text-2xl font-bold text-slate-900 mb-6">Saisie des Évaluations</h2>
-                <form id="form-saisie-note" onsubmit="handleSaisieNote(event)" class="space-y-5">
+                <div class="space-y-5">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">1. Sélectionner la Classe <span class="text-slate-400 normal-case font-normal">(classes qui vous ont été affectées par la direction)</span></label>
-                        <select id="note-classe-id" onchange="chargerElevesDuProf(this.value); chargerMatieresProfPourClasse(this.value)" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">1. Classe <span class="text-slate-400 normal-case font-normal">(classes qui vous ont été affectées)</span></label>
+                        <select id="note-classe-id" onchange="onClasseProfChange(this.value)" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
                             <option value="">Choisir une classe...</option>
                         </select>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">2. Sélectionner l'Élève</label>
-                            <select id="note-eleve-id" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
-                                <option value="">Choisir d'abord une classe</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">3. Sélectionner la Matière</label>
-                            <select id="note-matiere-id" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
-                                <option value="">Choisir d'abord une classe</option>
-                            </select>
-                        </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">2. Matière</label>
+                        <select id="note-matiere-id" onchange="rafraichirGrilleNotes()" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
+                            <option value="">Choisir d'abord une classe</option>
+                        </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-2">4. Pour quelle évaluation entrez-vous cette note ?</label>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-2">3. Type d'évaluation</label>
                         <div class="grid grid-cols-3 gap-3">
                             <label class="type-devoir-option cursor-pointer text-center py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold text-slate-600 hover:border-indigo-300 transition">
-                                <input type="radio" name="type_devoir" value="Devoir 1" class="hidden" checked onchange="updateTypeDevoirStyle()">
+                                <input type="radio" name="type_devoir" value="Devoir 1" class="hidden" checked onchange="updateTypeDevoirStyle(); rafraichirGrilleNotes()">
                                 Devoir 1
                             </label>
                             <label class="type-devoir-option cursor-pointer text-center py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold text-slate-600 hover:border-indigo-300 transition">
-                                <input type="radio" name="type_devoir" value="Devoir 2" class="hidden" onchange="updateTypeDevoirStyle()">
+                                <input type="radio" name="type_devoir" value="Devoir 2" class="hidden" onchange="updateTypeDevoirStyle(); rafraichirGrilleNotes()">
                                 Devoir 2
                             </label>
                             <label class="type-devoir-option cursor-pointer text-center py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold text-slate-600 hover:border-indigo-300 transition">
-                                <input type="radio" name="type_devoir" value="Composition" class="hidden" onchange="updateTypeDevoirStyle()">
+                                <input type="radio" name="type_devoir" value="Composition" class="hidden" onchange="updateTypeDevoirStyle(); rafraichirGrilleNotes()">
                                 Composition
                             </label>
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Note (/20)</label>
-                            <input type="number" step="0.25" min="0" max="20" id="note-valeur" required placeholder="ex: 15.5" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm font-bold text-indigo-600">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Coefficient</label>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Coefficient (appliqué à toute la saisie)</label>
                             <input type="number" min="1" max="10" id="note-coefficient" value="1" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Trimestre</label>
-                            <select id="note-trimestre" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
+                            <select id="note-trimestre" onchange="rafraichirGrilleNotes()" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
                                 <option value="1">Trimestre 1</option>
                                 <option value="2">Trimestre 2</option>
                                 <option value="3">Trimestre 3</option>
                             </select>
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Appréciation</label>
-                        <input type="text" id="note-appreciation" placeholder="Travail sérieux" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm">
-                    </div>
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition text-sm">Enregistrer la Note</button>
-                </form>
+                </div>
+            </div>
+
+            <!-- Grille de saisie : apparaît une fois classe + matière choisies -->
+            <div id="grille-notes-wrapper" class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-slate-900 text-base">Liste de la classe</h3>
+                    <span id="grille-notes-info" class="text-xs text-slate-400"></span>
+                </div>
+                <div id="grille-notes-body" class="divide-y divide-slate-100">
+                    <!-- lignes élèves injectées ici -->
+                </div>
+                <button type="button" onclick="enregistrerGrilleNotes()" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition text-sm">Enregistrer toutes les notes</button>
+                <div id="grille-notes-msg" class="mt-3 text-xs text-center hidden"></div>
             </div>
         </section>
 
@@ -233,8 +229,7 @@
         // ⚠️ Configuration Supabase
         const SUPABASE_URL = "https://krikondxbeexmjruybeo.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtyaWtvbmR4YmVleG1qcnV5YmVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MzUyNzcsImV4cCI6MjEwNDExMTI3N30.QvFXypjUO_NFv4B-zFCzEsecRABGL8c_kVokzxuzHv8";
-        
-        // Modification : Déclaration du client sous le nom supabaseClient
+
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const DOMAINE_TECHNIQUE = "@edusmart.com";
@@ -269,11 +264,16 @@
                 const { data: { session } } = await supabaseClient.auth.getSession();
 
                 if (session) {
-                    const { data: userProfile } = await supabaseClient.from('utilisateurs').select('*').eq('id', session.user.id).single();
-                    if (userProfile) {
+                    const { data: userProfile, error: profileError } = await supabaseClient.from('utilisateurs').select('*').eq('id', session.user.id).single();
+                    if (userProfile && !profileError) {
                         currentUser = userProfile;
                         setupDashboard();
+                        document.getElementById('loading-screen').classList.add('hidden');
                         return;
+                    } else {
+                        // Session invalide ou profil introuvable -> on force une reconnexion propre
+                        await supabaseClient.auth.signOut();
+                        currentUser = null;
                     }
                 }
             } catch (err) {
@@ -281,7 +281,9 @@
                 console.error(err);
             } finally {
                 document.getElementById('loading-screen').classList.add('hidden');
-                document.getElementById('auth-section').classList.remove('hidden');
+                if (!currentUser) {
+                    document.getElementById('auth-section').classList.remove('hidden');
+                }
             }
         }
 
@@ -358,8 +360,17 @@
             }
         }
 
-        function setupDashboard() {
+        // Masque tous les espaces avant d'afficher celui du rôle courant (corrige l'affichage
+        // qui pouvait rester bloqué sur "Espace Direction" d'une session précédente).
+        function hideAllDashboards() {
+            document.getElementById('dashboard-admin').classList.add('hidden');
+            document.getElementById('dashboard-prof').classList.add('hidden');
+            document.getElementById('dashboard-parent').classList.add('hidden');
             document.getElementById('auth-section').classList.add('hidden');
+        }
+
+        function setupDashboard() {
+            hideAllDashboards();
             document.getElementById('nav-user-info').classList.remove('hidden');
             document.getElementById('user-display-name').textContent = `${currentUser.prenom} ${currentUser.nom}`;
             document.getElementById('user-display-role').textContent = currentUser.role;
@@ -376,6 +387,10 @@
             } else if (currentUser.role === 'PARENT') {
                 document.getElementById('dashboard-parent').classList.remove('hidden');
                 loadParentDashboard();
+            } else {
+                // Rôle inconnu : on évite d'afficher un espace par défaut, on repart sur la connexion
+                showAuthError("Rôle de compte inconnu, merci de contacter la direction.");
+                document.getElementById('auth-section').classList.remove('hidden');
             }
         }
 
@@ -428,6 +443,11 @@
             });
         }
 
+        function onClasseProfChange(classeId) {
+            chargerMatieresProfPourClasse(classeId);
+            masquerGrilleNotes();
+        }
+
         function chargerMatieresProfPourClasse(classeId) {
             const matiereSelect = document.getElementById('note-matiere-id');
             if (!classeId) {
@@ -452,6 +472,129 @@
                     label.classList.add('border-slate-200', 'text-slate-600');
                 }
             });
+        }
+
+        function masquerGrilleNotes() {
+            document.getElementById('grille-notes-wrapper').classList.add('hidden');
+            document.getElementById('grille-notes-body').innerHTML = '';
+        }
+
+        // Appelé quand matière / type d'évaluation / trimestre changent
+        function rafraichirGrilleNotes() {
+            const classeId = document.getElementById('note-classe-id').value;
+            const matiereId = document.getElementById('note-matiere-id').value;
+            if (!classeId || !matiereId) {
+                masquerGrilleNotes();
+                return;
+            }
+            chargerGrilleNotes(classeId, matiereId);
+        }
+
+        async function chargerGrilleNotes(classeId, matiereId) {
+            const typeDevoir = document.querySelector('input[name="type_devoir"]:checked').value;
+            const trimestre = parseInt(document.getElementById('note-trimestre').value);
+
+            const { data: eleves, error: elevesError } = await supabaseClient
+                .from('eleves')
+                .select('id, nom, prenom, matricule')
+                .eq('classe_id', classeId)
+                .order('nom', { ascending: true });
+
+            const body = document.getElementById('grille-notes-body');
+            const wrapper = document.getElementById('grille-notes-wrapper');
+            const info = document.getElementById('grille-notes-info');
+
+            if (elevesError || !eleves || eleves.length === 0) {
+                body.innerHTML = `<p class="py-6 text-center text-sm text-slate-400">Aucun élève dans cette classe.</p>`;
+                wrapper.classList.remove('hidden');
+                info.textContent = '';
+                return;
+            }
+
+            // Récupère les notes déjà saisies par ce prof pour cette matière/type/trimestre
+            const eleveIds = eleves.map(e => e.id);
+            const { data: notesExistantes } = await supabaseClient
+                .from('notes')
+                .select('id, eleve_id, note')
+                .eq('matiere_id', matiereId)
+                .eq('prof_id', currentUser.id)
+                .eq('type_devoir', typeDevoir)
+                .eq('trimestre', trimestre)
+                .in('eleve_id', eleveIds);
+
+            const noteParEleve = {};
+            if (notesExistantes) {
+                notesExistantes.forEach(n => { noteParEleve[n.eleve_id] = n.note; });
+            }
+
+            info.textContent = `${eleves.length} élève(s) — ${typeDevoir} — Trimestre ${trimestre}`;
+
+            body.innerHTML = eleves.map(e => {
+                const valeurExistante = noteParEleve.hasOwnProperty(e.id) ? noteParEleve[e.id] : '';
+                return `
+                <div class="flex items-center gap-4 py-3" data-eleve-id="${e.id}">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-slate-800 truncate">${e.nom} ${e.prenom}</p>
+                        <p class="text-xs text-slate-400">${e.matricule}</p>
+                    </div>
+                    <input type="number" step="0.25" min="0" max="20" placeholder="/20"
+                        class="grille-note-input w-24 px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold text-indigo-600 text-center focus:ring-2 focus:ring-indigo-500 outline-none"
+                        value="${valeurExistante}">
+                </div>`;
+            }).join('');
+
+            wrapper.classList.remove('hidden');
+        }
+
+        function showGrilleMsg(msg, isError) {
+            const el = document.getElementById('grille-notes-msg');
+            el.textContent = msg;
+            el.classList.remove('hidden', 'text-emerald-600', 'text-rose-600');
+            el.classList.add(isError ? 'text-rose-600' : 'text-emerald-600');
+        }
+
+        async function enregistrerGrilleNotes() {
+            const matiereId = parseInt(document.getElementById('note-matiere-id').value);
+            const typeDevoir = document.querySelector('input[name="type_devoir"]:checked').value;
+            const trimestre = parseInt(document.getElementById('note-trimestre').value);
+            const coefficient = parseInt(document.getElementById('note-coefficient').value);
+
+            const lignes = document.querySelectorAll('#grille-notes-body [data-eleve-id]');
+            const notesAEnregistrer = [];
+
+            lignes.forEach(ligne => {
+                const eleveId = ligne.getAttribute('data-eleve-id');
+                const input = ligne.querySelector('.grille-note-input');
+                const valeur = input.value.trim();
+                if (valeur !== '') {
+                    notesAEnregistrer.push({
+                        eleve_id: eleveId,
+                        matiere_id: matiereId,
+                        prof_id: currentUser.id,
+                        type_devoir: typeDevoir,
+                        trimestre: trimestre,
+                        note: parseFloat(valeur),
+                        coefficient: coefficient
+                    });
+                }
+            });
+
+            if (notesAEnregistrer.length === 0) {
+                showGrilleMsg("Aucune note saisie.", true);
+                return;
+            }
+
+            // Upsert : insère les nouvelles notes, met à jour celles qui existent déjà
+            // (nécessite la contrainte unique sur eleve_id, matiere_id, prof_id, type_devoir, trimestre)
+            const { error } = await supabaseClient
+                .from('notes')
+                .upsert(notesAEnregistrer, { onConflict: 'eleve_id,matiere_id,prof_id,type_devoir,trimestre' });
+
+            if (error) {
+                showGrilleMsg("Erreur lors de l'enregistrement : " + error.message, true);
+            } else {
+                showGrilleMsg(`${notesAEnregistrer.length} note(s) enregistrée(s) avec succès !`, false);
+            }
         }
 
         async function handleAjoutEleve(e) {
@@ -493,40 +636,6 @@
             } else {
                 alert("Affectation créée !");
                 document.getElementById('form-affectation').reset();
-            }
-        }
-
-        async function chargerElevesDuProf(classeId) {
-            const eleveSelect = document.getElementById('note-eleve-id');
-            if (!classeId) {
-                eleveSelect.innerHTML = '<option value="">Choisir d\'abord une classe</option>';
-                return;
-            }
-            const { data: eleves } = await supabaseClient.from('eleves').select('id, nom, prenom, matricule').eq('classe_id', classeId);
-            eleveSelect.innerHTML = '<option value="">Choisir un élève...</option>';
-            if (eleves) eleves.forEach(e => { eleveSelect.innerHTML += `<option value="${e.id}">${e.nom} ${e.prenom} (${e.matricule})</option>`; });
-        }
-
-        async function handleSaisieNote(e) {
-            e.preventDefault();
-            const eleve_id = document.getElementById('note-eleve-id').value;
-            const matiere_id = parseInt(document.getElementById('note-matiere-id').value);
-            const type_devoir = document.querySelector('input[name="type_devoir"]:checked').value;
-            const note = parseFloat(document.getElementById('note-valeur').value);
-            const coefficient = parseInt(document.getElementById('note-coefficient').value);
-            const trimestre = parseInt(document.getElementById('note-trimestre').value);
-            const appreciation = document.getElementById('note-appreciation').value.trim();
-
-            const { error } = await supabaseClient.from('notes').insert([{
-                eleve_id, matiere_id, prof_id: currentUser.id, note, coefficient, trimestre, type_devoir, appreciation
-            }]);
-
-            if (error) {
-                alert("Erreur : " + error.message);
-            } else {
-                alert("Note enregistrée !");
-                document.getElementById('form-saisie-note').reset();
-                updateTypeDevoirStyle();
             }
         }
 
