@@ -151,8 +151,8 @@
                 <h2 class="text-2xl font-bold text-slate-900 mb-6">Saisie des Évaluations</h2>
                 <form id="form-saisie-note" onsubmit="handleSaisieNote(event)" class="space-y-5">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">1. Sélectionner la Classe</label>
-                        <select id="note-classe-id" onchange="chargerElevesDuProf(this.value)" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">1. Sélectionner la Classe <span class="text-slate-400 normal-case font-normal">(classes qui vous ont été affectées par la direction)</span></label>
+                        <select id="note-classe-id" onchange="chargerElevesDuProf(this.value); chargerMatieresProfPourClasse(this.value)" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
                             <option value="">Choisir une classe...</option>
                         </select>
                     </div>
@@ -166,8 +166,25 @@
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">3. Sélectionner la Matière</label>
                             <select id="note-matiere-id" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
-                                <option value="">Chargement des matières...</option>
+                                <option value="">Choisir d'abord une classe</option>
                             </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-2">4. Pour quelle évaluation entrez-vous cette note ?</label>
+                        <div class="grid grid-cols-3 gap-3">
+                            <label class="type-devoir-option cursor-pointer text-center py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold text-slate-600 hover:border-indigo-300 transition">
+                                <input type="radio" name="type_devoir" value="Devoir 1" class="hidden" checked onchange="updateTypeDevoirStyle()">
+                                Devoir 1
+                            </label>
+                            <label class="type-devoir-option cursor-pointer text-center py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold text-slate-600 hover:border-indigo-300 transition">
+                                <input type="radio" name="type_devoir" value="Devoir 2" class="hidden" onchange="updateTypeDevoirStyle()">
+                                Devoir 2
+                            </label>
+                            <label class="type-devoir-option cursor-pointer text-center py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold text-slate-600 hover:border-indigo-300 transition">
+                                <input type="radio" name="type_devoir" value="Composition" class="hidden" onchange="updateTypeDevoirStyle()">
+                                Composition
+                            </label>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -354,8 +371,8 @@
                 chargerMatieresInSelect('affect-matiere-id');
             } else if (currentUser.role === 'PROFESSEUR') {
                 document.getElementById('dashboard-prof').classList.remove('hidden');
-                chargerClassesInSelect('note-classe-id');
-                chargerMatieresInSelect('note-matiere-id');
+                chargerClassesProf();
+                updateTypeDevoirStyle();
             } else if (currentUser.role === 'PARENT') {
                 document.getElementById('dashboard-parent').classList.remove('hidden');
                 loadParentDashboard();
@@ -379,6 +396,62 @@
             const select = document.getElementById(selectId);
             select.innerHTML = '<option value="">Choisir une matière...</option>';
             if (matieres) matieres.forEach(m => { select.innerHTML += `<option value="${m.id}">${m.nom_matiere}</option>`; });
+        }
+
+        let profAffectations = [];
+
+        async function chargerClassesProf() {
+            const { data, error } = await supabaseClient
+                .from('affectations_profs')
+                .select('classe_id, matiere_id, classes(nom_classe), matieres(nom_matiere)')
+                .eq('prof_id', currentUser.id);
+
+            const classeSelect = document.getElementById('note-classe-id');
+
+            if (error || !data || data.length === 0) {
+                classeSelect.innerHTML = '<option value="">Aucune classe ne vous a été affectée</option>';
+                profAffectations = [];
+                return;
+            }
+
+            profAffectations = data.map(a => ({
+                classe_id: a.classe_id,
+                nom_classe: a.classes ? a.classes.nom_classe : 'Classe',
+                matiere_id: a.matiere_id,
+                nom_matiere: a.matieres ? a.matieres.nom_matiere : 'Matière'
+            }));
+
+            const classesUniques = [...new Map(profAffectations.map(a => [a.classe_id, a.nom_classe])).entries()];
+            classeSelect.innerHTML = '<option value="">Choisir une classe...</option>';
+            classesUniques.forEach(([id, nom]) => {
+                classeSelect.innerHTML += `<option value="${id}">${nom}</option>`;
+            });
+        }
+
+        function chargerMatieresProfPourClasse(classeId) {
+            const matiereSelect = document.getElementById('note-matiere-id');
+            if (!classeId) {
+                matiereSelect.innerHTML = '<option value="">Choisir d\'abord une classe</option>';
+                return;
+            }
+            const matieres = profAffectations.filter(a => String(a.classe_id) === String(classeId));
+            matiereSelect.innerHTML = '<option value="">Choisir une matière...</option>';
+            matieres.forEach(m => {
+                matiereSelect.innerHTML += `<option value="${m.matiere_id}">${m.nom_matiere}</option>`;
+            });
+        }
+
+        function updateTypeDevoirStyle() {
+            document.querySelectorAll('.type-devoir-option').forEach(label => {
+                const input = label.querySelector('input');
+                if (input && input.checked) {
+                    label.classList.add('border-indigo-600', 'bg-indigo-50', 'text-indigo-700');
+                    label.classList.remove('border-slate-200', 'text-slate-600');
+                } else {
+                    label.classList.remove('border-indigo-600', 'bg-indigo-50', 'text-indigo-700');
+                    label.classList.add('border-slate-200', 'text-slate-600');
+                }
+            });
         }
 
         async function handleAjoutEleve(e) {
@@ -438,13 +511,14 @@
             e.preventDefault();
             const eleve_id = document.getElementById('note-eleve-id').value;
             const matiere_id = parseInt(document.getElementById('note-matiere-id').value);
+            const type_devoir = document.querySelector('input[name="type_devoir"]:checked').value;
             const note = parseFloat(document.getElementById('note-valeur').value);
             const coefficient = parseInt(document.getElementById('note-coefficient').value);
             const trimestre = parseInt(document.getElementById('note-trimestre').value);
             const appreciation = document.getElementById('note-appreciation').value.trim();
 
             const { error } = await supabaseClient.from('notes').insert([{
-                eleve_id, matiere_id, prof_id: currentUser.id, note, coefficient, trimestre, appreciation
+                eleve_id, matiere_id, prof_id: currentUser.id, note, coefficient, trimestre, type_devoir, appreciation
             }]);
 
             if (error) {
@@ -452,6 +526,7 @@
             } else {
                 alert("Note enregistrée !");
                 document.getElementById('form-saisie-note').reset();
+                updateTypeDevoirStyle();
             }
         }
 
@@ -495,12 +570,13 @@
                     e.notes.forEach(n => {
                         notesHTML += `<tr class="border-b border-slate-100">
                             <td class="py-3 font-semibold">${n.matieres ? n.matieres.nom_matiere : 'Matière'}</td>
+                            <td class="py-3 text-xs text-slate-500">${n.type_devoir || '-'}</td>
                             <td class="py-3 text-xs text-slate-500">${n.appreciation || '-'}</td>
                             <td class="py-3 text-right font-bold text-indigo-600">${n.note}/20 (Coeff ${n.coefficient || 1})</td>
                         </tr>`;
                     });
                 } else {
-                    notesHTML = `<tr><td colspan="3" class="py-4 text-center text-xs text-slate-400 italic">Aucune note.</td></tr>`;
+                    notesHTML = `<tr><td colspan="4" class="py-4 text-center text-xs text-slate-400 italic">Aucune note.</td></tr>`;
                 }
 
                 container.innerHTML += `
@@ -511,7 +587,7 @@
                         </div>
                         <table class="w-full text-left text-sm">
                             <thead><tr class="text-xs text-slate-400 border-b border-slate-100">
-                                <th class="pb-2">Matière</th><th class="pb-2">Appréciation</th><th class="pb-2 text-right">Note</th>
+                                <th class="pb-2">Matière</th><th class="pb-2">Type</th><th class="pb-2">Appréciation</th><th class="pb-2 text-right">Note</th>
                             </tr></thead>
                             <tbody>${notesHTML}</tbody>
                         </table>
