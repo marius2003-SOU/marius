@@ -230,7 +230,15 @@
         const SUPABASE_URL = "https://krikondxbeexmjruybeo.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtyaWtvbmR4YmVleG1qcnV5YmVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MzUyNzcsImV4cCI6MjEwNDExMTI3N30.QvFXypjUO_NFv4B-zFCzEsecRABGL8c_kVokzxuzHv8";
 
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Correctif 1 : on désactive la persistance de session (localStorage) pour que
+        // le site affiche TOUJOURS l'écran de connexion à l'ouverture, au lieu de
+        // reconnecter automatiquement le dernier compte utilisé sur ce navigateur.
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                persistSession: false,
+                autoRefreshToken: false
+            }
+        });
 
         const DOMAINE_TECHNIQUE = "@edusmart.com";
         let currentUser = null;
@@ -258,7 +266,8 @@
             errElem.classList.toggle('hidden', !msg);
         }
 
-        // --- SESSION : reste connecté après rechargement de page ---
+        // --- SESSION : avec persistSession désactivé, getSession() ne retrouvera plus
+        // jamais d'ancienne session au rechargement -> l'écran de connexion s'affiche toujours.
         async function initSession() {
             try {
                 const { data: { session } } = await supabaseClient.auth.getSession();
@@ -659,6 +668,9 @@
             }
         }
 
+        // Correctif 2 : les notes sont maintenant regroupées par matière.
+        // Le parent voit la liste des matières ; en cliquant sur une matière,
+        // il déplie le panneau et voit toutes les notes obtenues dans cette matière.
         async function loadParentDashboard() {
             const container = document.getElementById('parent-enfants-container');
             container.innerHTML = "";
@@ -673,19 +685,50 @@
                 return;
             }
 
-            enfants.forEach(e => {
-                let notesHTML = "";
-                if (e.notes && e.notes.length > 0) {
-                    e.notes.forEach(n => {
-                        notesHTML += `<tr class="border-b border-slate-100">
-                            <td class="py-3 font-semibold">${n.matieres ? n.matieres.nom_matiere : 'Matière'}</td>
-                            <td class="py-3 text-xs text-slate-500">${n.type_devoir || '-'}</td>
-                            <td class="py-3 text-xs text-slate-500">${n.appreciation || '-'}</td>
-                            <td class="py-3 text-right font-bold text-indigo-600">${n.note}/20 (Coeff ${n.coefficient || 1})</td>
-                        </tr>`;
-                    });
+            enfants.forEach((e, idxEnfant) => {
+                // Regroupement des notes par matière
+                const notesParMatiere = {};
+                (e.notes || []).forEach(n => {
+                    const nomMatiere = n.matieres ? n.matieres.nom_matiere : 'Matière';
+                    if (!notesParMatiere[nomMatiere]) notesParMatiere[nomMatiere] = [];
+                    notesParMatiere[nomMatiere].push(n);
+                });
+
+                const matieresNoms = Object.keys(notesParMatiere).sort();
+
+                let matieresHTML = "";
+                if (matieresNoms.length === 0) {
+                    matieresHTML = `<p class="py-4 text-center text-xs text-slate-400 italic">Aucune note.</p>`;
                 } else {
-                    notesHTML = `<tr><td colspan="4" class="py-4 text-center text-xs text-slate-400 italic">Aucune note.</td></tr>`;
+                    matieresHTML = matieresNoms.map((nomMatiere, idxMatiere) => {
+                        const notesMatiere = notesParMatiere[nomMatiere];
+                        const panelId = `panel-note-${idxEnfant}-${idxMatiere}`;
+                        const compteur = notesMatiere.length > 1 ? `${notesMatiere.length} notes` : `${notesMatiere.length} note`;
+
+                        const lignesNotes = notesMatiere.map(n => `
+                            <tr class="border-b border-slate-100">
+                                <td class="py-2.5 text-xs text-slate-500">${n.type_devoir || '-'}</td>
+                                <td class="py-2.5 text-xs text-slate-500">Trimestre ${n.trimestre || '-'}</td>
+                                <td class="py-2.5 text-xs text-slate-500">${n.appreciation || '-'}</td>
+                                <td class="py-2.5 text-right font-bold text-indigo-600">${n.note}/20 <span class="text-xs font-normal text-slate-400">(Coeff ${n.coefficient || 1})</span></td>
+                            </tr>`).join('');
+
+                        return `
+                        <div class="border border-slate-200 rounded-xl overflow-hidden">
+                            <button type="button" onclick="toggleMatierePanel('${panelId}')" class="w-full flex justify-between items-center px-4 py-3 bg-slate-50 hover:bg-slate-100 transition text-left">
+                                <span class="font-semibold text-sm text-slate-800">${nomMatiere}</span>
+                                <span class="text-xs text-slate-400 flex items-center gap-1">${compteur} <span id="${panelId}-chevron">›</span></span>
+                            </button>
+                            <div id="${panelId}" class="hidden px-4 py-2">
+                                <table class="w-full text-left text-sm">
+                                    <thead><tr class="text-xs text-slate-400 border-b border-slate-100">
+                                        <th class="pb-2">Type</th><th class="pb-2">Trimestre</th><th class="pb-2">Appréciation</th><th class="pb-2 text-right">Note</th>
+                                    </tr></thead>
+                                    <tbody>${lignesNotes}</tbody>
+                                </table>
+                            </div>
+                        </div>`;
+                    }).join('');
                 }
 
                 container.innerHTML += `
@@ -694,14 +737,17 @@
                             <h4 class="text-xl font-bold text-slate-900">${e.prenom} ${e.nom}</h4>
                             <p class="text-xs text-slate-400">Matricule: ${e.matricule} • Classe: ${e.classes ? e.classes.nom_classe : 'Non assignée'}</p>
                         </div>
-                        <table class="w-full text-left text-sm">
-                            <thead><tr class="text-xs text-slate-400 border-b border-slate-100">
-                                <th class="pb-2">Matière</th><th class="pb-2">Type</th><th class="pb-2">Appréciation</th><th class="pb-2 text-right">Note</th>
-                            </tr></thead>
-                            <tbody>${notesHTML}</tbody>
-                        </table>
+                        <div class="space-y-2">${matieresHTML}</div>
                     </div>`;
             });
+        }
+
+        function toggleMatierePanel(panelId) {
+            const panel = document.getElementById(panelId);
+            const chevron = document.getElementById(`${panelId}-chevron`);
+            const estOuvert = !panel.classList.contains('hidden');
+            panel.classList.toggle('hidden');
+            if (chevron) chevron.textContent = estOuvert ? '›' : '⌄';
         }
 
         initSession();
