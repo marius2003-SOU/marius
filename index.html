@@ -223,6 +223,53 @@
             <div id="parent-enfants-container" class="grid grid-cols-1 gap-6"></div>
         </section>
 
+        <!-- ESPACE DIRECTEUR -->
+        <section id="dashboard-directeur" class="max-w-5xl mx-auto space-y-6 hidden">
+            <div class="bg-slate-900 rounded-2xl p-6 text-white shadow-xl flex justify-between items-center">
+                <div>
+                    <span class="text-xs uppercase tracking-widest text-indigo-300 font-semibold">Consultation</span>
+                    <h2 class="text-2xl font-bold mt-1">Espace Directeur</h2>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-slate-900 text-base mb-4">Rechercher un élève</h3>
+                <form id="form-recherche-directeur" onsubmit="handleRechercheDirecteur(event)" class="flex flex-col sm:flex-row gap-3">
+                    <input type="text" id="dir-recherche" placeholder="Nom, prénom ou matricule..." required class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-xl transition text-sm">Rechercher</button>
+                </form>
+                <div id="dir-resultats" class="mt-4 space-y-2"></div>
+            </div>
+
+            <div id="dir-fiche-eleve" class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hidden">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h4 id="dir-eleve-nom" class="text-xl font-bold text-slate-900"></h4>
+                        <p id="dir-eleve-info" class="text-xs text-slate-400"></p>
+                    </div>
+                    <button type="button" onclick="fermerFicheDirecteur()" class="text-slate-400 hover:text-rose-600 text-sm">✕ Fermer</button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Matière</label>
+                        <select id="dir-filtre-matiere" onchange="rafraichirNotesDirecteur()" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
+                            <option value="">Toutes les matières</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Trimestre</label>
+                        <select id="dir-filtre-trimestre" onchange="rafraichirNotesDirecteur()" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
+                            <option value="">Tous les trimestres</option>
+                            <option value="1">Trimestre 1</option>
+                            <option value="2">Trimestre 2</option>
+                            <option value="3">Trimestre 3</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="dir-notes-body"></div>
+            </div>
+        </section>
+
     </main>
 
     <script>
@@ -375,6 +422,7 @@
             document.getElementById('dashboard-admin').classList.add('hidden');
             document.getElementById('dashboard-prof').classList.add('hidden');
             document.getElementById('dashboard-parent').classList.add('hidden');
+            document.getElementById('dashboard-directeur').classList.add('hidden');
             document.getElementById('auth-section').classList.add('hidden');
         }
 
@@ -396,6 +444,8 @@
             } else if (currentUser.role === 'PARENT') {
                 document.getElementById('dashboard-parent').classList.remove('hidden');
                 loadParentDashboard();
+            } else if (currentUser.role === 'DIRECTEUR') {
+                document.getElementById('dashboard-directeur').classList.remove('hidden');
             } else {
                 // Rôle inconnu : on évite d'afficher un espace par défaut, on repart sur la connexion
                 showAuthError("Rôle de compte inconnu, merci de contacter la direction.");
@@ -748,6 +798,108 @@
             const estOuvert = !panel.classList.contains('hidden');
             panel.classList.toggle('hidden');
             if (chevron) chevron.textContent = estOuvert ? '›' : '⌄';
+        }
+
+        // ===================== ESPACE DIRECTEUR =====================
+        let dirEleveCourant = null;
+        let dirResultatsCache = [];
+
+        async function handleRechercheDirecteur(e) {
+            e.preventDefault();
+            const terme = document.getElementById('dir-recherche').value.trim();
+            const resultatsDiv = document.getElementById('dir-resultats');
+            if (!terme) return;
+
+            const { data: eleves, error } = await supabaseClient
+                .from('eleves')
+                .select('id, nom, prenom, matricule, classes(nom_classe)')
+                .or(`nom.ilike.%${terme}%,prenom.ilike.%${terme}%,matricule.ilike.%${terme}%`)
+                .order('nom', { ascending: true })
+                .limit(20);
+
+            if (error || !eleves || eleves.length === 0) {
+                dirResultatsCache = [];
+                resultatsDiv.innerHTML = `<p class="text-sm text-slate-400 text-center py-4">Aucun élève trouvé.</p>`;
+                return;
+            }
+
+            dirResultatsCache = eleves;
+
+            resultatsDiv.innerHTML = eleves.map((el, i) => `
+                <button type="button" onclick="ouvrirFicheDirecteur(${i})"
+                    class="w-full flex justify-between items-center px-4 py-3 bg-slate-50 hover:bg-indigo-50 rounded-xl transition text-left">
+                    <span>
+                        <span class="font-semibold text-sm text-slate-800">${el.nom} ${el.prenom}</span>
+                        <span class="block text-xs text-slate-400">${el.matricule} • ${el.classes ? el.classes.nom_classe : 'Non assignée'}</span>
+                    </span>
+                    <span class="text-slate-300">›</span>
+                </button>
+            `).join('');
+        }
+
+        async function ouvrirFicheDirecteur(index) {
+            const eleve = dirResultatsCache[index];
+            if (!eleve) return;
+            dirEleveCourant = eleve;
+
+            document.getElementById('dir-eleve-nom').textContent = `${eleve.prenom} ${eleve.nom}`;
+            document.getElementById('dir-eleve-info').textContent = `Matricule: ${eleve.matricule} • Classe: ${eleve.classes ? eleve.classes.nom_classe : 'Non assignée'}`;
+            document.getElementById('dir-fiche-eleve').classList.remove('hidden');
+
+            // Charge les matières dans le filtre une seule fois
+            const matiereSelect = document.getElementById('dir-filtre-matiere');
+            if (matiereSelect.options.length <= 1) {
+                const { data: matieres } = await supabaseClient.from('matieres').select('id, nom_matiere');
+                if (matieres) matieres.forEach(m => { matiereSelect.innerHTML += `<option value="${m.id}">${m.nom_matiere}</option>`; });
+            }
+            document.getElementById('dir-filtre-matiere').value = '';
+            document.getElementById('dir-filtre-trimestre').value = '';
+
+            rafraichirNotesDirecteur();
+        }
+
+        function fermerFicheDirecteur() {
+            dirEleveCourant = null;
+            document.getElementById('dir-fiche-eleve').classList.add('hidden');
+        }
+
+        async function rafraichirNotesDirecteur() {
+            if (!dirEleveCourant) return;
+            const matiereId = document.getElementById('dir-filtre-matiere').value;
+            const trimestre = document.getElementById('dir-filtre-trimestre').value;
+            const body = document.getElementById('dir-notes-body');
+
+            let query = supabaseClient
+                .from('notes')
+                .select('*, matieres(nom_matiere)')
+                .eq('eleve_id', dirEleveCourant.id)
+                .order('trimestre', { ascending: true });
+
+            if (matiereId) query = query.eq('matiere_id', matiereId);
+            if (trimestre) query = query.eq('trimestre', parseInt(trimestre));
+
+            const { data: notes, error } = await query;
+
+            if (error || !notes || notes.length === 0) {
+                body.innerHTML = `<p class="py-6 text-center text-sm text-slate-400">Aucune note pour ces critères.</p>`;
+                return;
+            }
+
+            body.innerHTML = `
+                <table class="w-full text-left text-sm">
+                    <thead><tr class="text-xs text-slate-400 border-b border-slate-100">
+                        <th class="pb-2">Matière</th><th class="pb-2">Type</th><th class="pb-2">Trimestre</th><th class="pb-2 text-right">Note</th>
+                    </tr></thead>
+                    <tbody>
+                        ${notes.map(n => `
+                        <tr class="border-b border-slate-100">
+                            <td class="py-2.5 text-xs font-semibold text-slate-700">${n.matieres ? n.matieres.nom_matiere : '-'}</td>
+                            <td class="py-2.5 text-xs text-slate-500">${n.type_devoir || '-'}</td>
+                            <td class="py-2.5 text-xs text-slate-500">Trimestre ${n.trimestre}</td>
+                            <td class="py-2.5 text-right font-bold text-indigo-600">${n.note}/20 <span class="text-xs font-normal text-slate-400">(Coeff ${n.coefficient || 1})</span></td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>`;
         }
 
         initSession();
