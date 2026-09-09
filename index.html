@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" class="h-full bg-slate-50">
+<html lang="fr" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,28 +11,79 @@
         window.tailwind = { config: { suppressDeprecationWarnings: true } };
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style> body { font-family: 'Inter', sans-serif; } </style>
+    <style> 
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+        }
+
+        /* Arrière-plan chic avec image éducative/bibliothèque et effet flouté */
+        .bg-custom-overlay {
+            background-image: linear-gradient(to bottom, rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.85)), 
+                              url('https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        /* Effet de carte en verre transparent (Glassmorphism) */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .glass-dark {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Animations fluides */
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .transition-all-custom {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
 </head>
-<body class="h-full text-slate-800 flex flex-col antialiased">
+<body class="h-full text-slate-800 flex flex-col antialiased bg-custom-overlay min-h-screen">
 
     <!-- EN-TÊTE -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <header class="bg-slate-900/80 backdrop-blur-md border-b border-white/10 sticky top-0 z-50 transition-all">
         <div class="max-w-7xl mx-auto px-6 h-16 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold text-xl shadow-md">E</div>
+                <div class="w-10 h-10 bg-indigo-600 hover:bg-indigo-500 transition-colors text-white rounded-xl flex items-center justify-center font-bold text-xl shadow-lg shadow-indigo-500/30">
+                    E
+                </div>
                 <div>
-                    <span class="font-bold text-slate-900 tracking-tight text-lg">EduSmart</span>
-                    <span class="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-medium ml-2">Portail Sécurisé</span>
+                    <span class="font-extrabold text-white tracking-tight text-lg">EduSmart</span>
+                    <span class="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-0.5 rounded-full font-medium ml-2 backdrop-blur-sm">Portail Sécurisé</span>
                 </div>
             </div>
             <div id="nav-user-info" class="hidden flex items-center gap-4">
                 <div class="text-right">
-                    <p id="user-display-name" class="text-sm font-semibold text-slate-800 leading-tight"></p>
-                    <p id="user-display-role" class="text-xs font-medium text-indigo-600 uppercase"></p>
+                    <p id="user-display-name" class="text-sm font-semibold text-white leading-tight"></p>
+                    <p id="user-display-role" class="text-xs font-medium text-indigo-400 uppercase tracking-wider"></p>
                 </div>
-                <button onclick="logout()" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Déconnexion">🚪</button>
+                <button onclick="logout()" class="p-2 text-slate-300 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all hover:scale-105 active:scale-95" title="Déconnexion">🚪</button>
             </div>
         </div>
     </header>
@@ -40,140 +91,147 @@
     <main class="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
 
         <!-- Message de chargement initial -->
-        <div id="loading-screen" class="text-center py-20 text-slate-400 text-sm">Chargement...</div>
+        <div id="loading-screen" class="text-center py-20 text-white/70 text-sm font-medium animate-pulse">
+            Chargement de votre espace sécurisé...
+        </div>
 
         <!-- SECTION AUTHENTIFICATION -->
-        <section id="auth-section" class="max-w-md mx-auto my-8 hidden">
-            <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-xl">
-                <div class="text-center mb-6">
-                    <h2 class="text-2xl font-bold text-slate-900">Espace Sécurisé</h2>
-                    <p class="text-sm text-slate-500 mt-1">Connectez-vous à votre compte</p>
+        <section id="auth-section" class="max-w-md mx-auto my-8 hidden animate-fade-in">
+            <div class="glass-card rounded-3xl p-8">
+                <!-- Logo Éducation fourni -->
+                <div class="flex justify-center mb-4">
+                    <img src="OIP.jpg" alt="Education Logo" class="h-20 object-contain drop-shadow-md hover:scale-105 transition-transform">
                 </div>
 
-                <div class="grid grid-cols-2 p-1 bg-slate-100 rounded-xl mb-6 text-sm font-medium">
-                    <button type="button" id="tab-login" onclick="switchAuthTab('login')" class="py-2.5 rounded-lg bg-white shadow-sm text-slate-900 transition">Connexion</button>
-                    <button type="button" id="tab-register" onclick="switchAuthTab('register')" class="py-2.5 rounded-lg text-slate-500 hover:text-slate-900 transition">Inscription</button>
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Espace Sécurisé</h2>
+                    <p class="text-sm text-slate-500 mt-1">Connectez-vous à votre compte EduSmart</p>
+                </div>
+
+                <div class="grid grid-cols-2 p-1.5 bg-slate-200/60 rounded-xl mb-6 text-sm font-semibold">
+                    <button type="button" id="tab-login" onclick="switchAuthTab('login')" class="py-2.5 rounded-lg bg-white shadow-md text-slate-900 transition-all">Connexion</button>
+                    <button type="button" id="tab-register" onclick="switchAuthTab('register')" class="py-2.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all">Inscription</button>
                 </div>
 
                 <!-- Formulaire Connexion -->
                 <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Numéro de téléphone</label>
-                        <input type="text" id="login-phone" placeholder="ex: 70000000" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Numéro de téléphone</label>
+                        <input type="text" id="login-phone" placeholder="ex: 70000000" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm transition-all bg-white/80">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Mot de Passe</label>
-                        <input type="password" id="login-password" placeholder="••••••••" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Mot de Passe</label>
+                        <input type="password" id="login-password" placeholder="••••••••" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm transition-all bg-white/80">
                     </div>
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition text-sm">Se connecter</button>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-indigo-600/30 text-sm">Se connecter</button>
                 </form>
 
                 <!-- Formulaire Inscription -->
                 <form id="form-register" onsubmit="handleRegister(event)" class="space-y-4 hidden">
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nom</label>
-                            <input type="text" id="reg-nom" required class="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none text-sm">
+                            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Nom</label>
+                            <input type="text" id="reg-nom" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white/80">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Prénom</label>
-                            <input type="text" id="reg-prenom" required class="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none text-sm">
+                            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Prénom</label>
+                            <input type="text" id="reg-prenom" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white/80">
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Téléphone</label>
-                        <input type="text" id="reg-phone" placeholder="ex: 70000000" required class="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none text-sm">
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Téléphone</label>
+                        <input type="text" id="reg-phone" placeholder="ex: 70000000" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white/80">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Mot de Passe</label>
-                        <input type="password" id="reg-password" minlength="6" placeholder="Au moins 6 caractères" required class="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none text-sm">
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Mot de Passe</label>
+                        <input type="password" id="reg-password" minlength="6" placeholder="Au moins 6 caractères" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white/80">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Rôle</label>
-                        <select id="reg-role" onchange="toggleCodeProf()" class="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none text-sm bg-white">
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Rôle</label>
+                        <select id="reg-role" onchange="toggleCodeProf()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white/80">
                             <option value="PARENT">Parent d'élève</option>
                             <option value="PROFESSEUR">Enseignant / Professeur</option>
                         </select>
                     </div>
                     <div id="bloc-code-prof" class="hidden">
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Code Professeur</label>
-                        <input type="text" id="reg-code-prof" placeholder="Fourni par la direction" class="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none text-sm">
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Code Professeur</label>
+                        <input type="text" id="reg-code-prof" placeholder="Fourni par la direction" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white/80">
                     </div>
-                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl transition text-sm">Créer mon compte</button>
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-emerald-600/30 text-sm">Créer mon compte</button>
                 </form>
 
-                <div id="auth-error" class="mt-4 p-3 bg-rose-50 border border-rose-100 rounded-xl text-xs font-medium text-rose-600 text-center hidden"></div>
+                <div id="auth-error" class="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-semibold text-rose-600 text-center hidden animate-fade-in"></div>
             </div>
         </section>
 
         <!-- ESPACE DIRECTION / ADMIN -->
-        <section id="dashboard-admin" class="space-y-8 hidden">
-            <div class="bg-slate-900 rounded-2xl p-6 text-white shadow-xl flex justify-between items-center">
+        <section id="dashboard-admin" class="space-y-8 hidden animate-fade-in">
+            <div class="glass-dark rounded-2xl p-6 text-white shadow-xl flex justify-between items-center">
                 <div>
-                    <span class="text-xs uppercase tracking-widest text-indigo-300 font-semibold">Administration</span>
-                    <h2 class="text-2xl font-bold mt-1">Espace Direction</h2>
+                    <span class="text-xs uppercase tracking-widest text-indigo-400 font-bold">Administration</span>
+                    <h2 class="text-2xl font-extrabold mt-1">Espace Direction</h2>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+            <div class="glass-card rounded-2xl p-6">
                 <h3 class="font-bold text-slate-900 text-base mb-4">Inscrire un nouvel élève</h3>
                 <form id="form-ajout-eleve" onsubmit="handleAjoutEleve(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <input type="text" id="eleve-nom" placeholder="Nom de l'élève" required class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
-                    <input type="text" id="eleve-prenom" placeholder="Prénom de l'élève" required class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
-                    <input type="text" id="eleve-matricule" placeholder="Matricule (ex: MAT-2026)" required class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
-                    <input type="date" id="eleve-date-naissance" required class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
-                    <input type="text" id="eleve-code-parent" placeholder="Code secret parent (ex: 4821)" required class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
-                    <select id="eleve-classe-id" required class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
+                    <input type="text" id="eleve-nom" placeholder="Nom de l'élève" required class="px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-500">
+                    <input type="text" id="eleve-prenom" placeholder="Prénom de l'élève" required class="px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-500">
+                    <input type="text" id="eleve-matricule" placeholder="Matricule (ex: MAT-2026)" required class="px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-500">
+                    <input type="date" id="eleve-date-naissance" required class="px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-500">
+                    <input type="text" id="eleve-code-parent" placeholder="Code secret parent (ex: 4821)" required class="px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-500">
+                    <select id="eleve-classe-id" required class="px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-500">
                         <option value="">Chargement des classes...</option>
                     </select>
-                    <button type="submit" class="md:col-span-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition text-sm">Enregistrer l'élève</button>
+                    <button type="submit" class="md:col-span-3 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-semibold py-2.5 rounded-xl transition-all shadow-md shadow-indigo-600/20 text-sm">Enregistrer l'élève</button>
                 </form>
             </div>
 
-            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+            <div class="glass-card rounded-2xl p-6">
                 <h3 class="font-bold text-slate-900 text-base mb-4">Affecter un professeur à une classe / matière</h3>
                 <form id="form-affectation" onsubmit="handleAffectation(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <input type="text" id="affect-tel-prof" placeholder="Téléphone du professeur" required class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
-                    <select id="affect-classe-id" required class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
+                    <input type="text" id="affect-tel-prof" placeholder="Téléphone du professeur" required class="px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-500">
+                    <select id="affect-classe-id" required class="px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-500">
                         <option value="">Classe...</option>
                     </select>
-                    <select id="affect-matiere-id" required class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
+                    <select id="affect-matiere-id" required class="px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-500">
                         <option value="">Matière...</option>
                     </select>
-                    <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl transition text-sm">Affecter</button>
+                    <button type="submit" class="bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-semibold py-2.5 rounded-xl transition-all shadow-md text-sm">Affecter</button>
                 </form>
             </div>
         </section>
 
         <!-- ESPACE ENSEIGNANT -->
-        <section id="dashboard-prof" class="max-w-4xl mx-auto space-y-6 hidden">
-            <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
-                <h2 class="text-2xl font-bold text-slate-900 mb-6">Saisie des Évaluations</h2>
+        <section id="dashboard-prof" class="max-w-4xl mx-auto space-y-6 hidden animate-fade-in">
+            <div class="glass-card rounded-2xl p-8">
+                <h2 class="text-2xl font-extrabold text-slate-900 mb-6">Saisie des Évaluations</h2>
                 <div class="space-y-5">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">1. Classe <span class="text-slate-400 normal-case font-normal">(classes qui vous ont été affectées)</span></label>
-                        <select id="note-classe-id" onchange="onClasseProfChange(this.value)" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">1. Classe <span class="text-slate-400 normal-case font-normal">(classes qui vous ont été affectées)</span></label>
+                        <select id="note-classe-id" onchange="onClasseProfChange(this.value)" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white/80 focus:ring-2 focus:ring-indigo-500">
                             <option value="">Choisir une classe...</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">2. Matière</label>
-                        <select id="note-matiere-id" onchange="rafraichirGrilleNotes()" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">2. Matière</label>
+                        <select id="note-matiere-id" onchange="rafraichirGrilleNotes()" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white/80 focus:ring-2 focus:ring-indigo-500">
                             <option value="">Choisir d'abord une classe</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-2">3. Type d'évaluation</label>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">3. Type d'évaluation</label>
                         <div class="grid grid-cols-3 gap-3">
-                            <label class="type-devoir-option cursor-pointer text-center py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold text-slate-600 hover:border-indigo-300 transition">
+                            <label class="type-devoir-option cursor-pointer text-center py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold text-slate-600 hover:border-indigo-300 transition-all hover:scale-[1.02]">
                                 <input type="radio" name="type_devoir" value="Devoir 1" class="hidden" checked onchange="updateTypeDevoirStyle(); rafraichirGrilleNotes()">
                                 Devoir 1
                             </label>
-                            <label class="type-devoir-option cursor-pointer text-center py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold text-slate-600 hover:border-indigo-300 transition">
+                            <label class="type-devoir-option cursor-pointer text-center py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold text-slate-600 hover:border-indigo-300 transition-all hover:scale-[1.02]">
                                 <input type="radio" name="type_devoir" value="Devoir 2" class="hidden" onchange="updateTypeDevoirStyle(); rafraichirGrilleNotes()">
                                 Devoir 2
                             </label>
-                            <label class="type-devoir-option cursor-pointer text-center py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold text-slate-600 hover:border-indigo-300 transition">
+                            <label class="type-devoir-option cursor-pointer text-center py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold text-slate-600 hover:border-indigo-300 transition-all hover:scale-[1.02]">
                                 <input type="radio" name="type_devoir" value="Composition" class="hidden" onchange="updateTypeDevoirStyle(); rafraichirGrilleNotes()">
                                 Composition
                             </label>
@@ -181,12 +239,12 @@
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Coefficient (appliqué à toute la saisie)</label>
-                            <input type="number" min="1" max="10" id="note-coefficient" value="1" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm">
+                            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Coefficient (appliqué à toute la saisie)</label>
+                            <input type="number" min="1" max="10" id="note-coefficient" value="1" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white/80 focus:ring-2 focus:ring-indigo-500">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Trimestre</label>
-                            <select id="note-trimestre" onchange="rafraichirGrilleNotes()" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
+                            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Trimestre</label>
+                            <select id="note-trimestre" onchange="rafraichirGrilleNotes()" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white/80 focus:ring-2 focus:ring-indigo-500">
                                 <option value="1">Trimestre 1</option>
                                 <option value="2">Trimestre 2</option>
                                 <option value="3">Trimestre 3</option>
@@ -196,69 +254,69 @@
                 </div>
             </div>
 
-            <!-- Grille de saisie : apparaît une fois classe + matière choisies -->
-            <div id="grille-notes-wrapper" class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hidden">
+            <!-- Grille de saisie -->
+            <div id="grille-notes-wrapper" class="glass-card rounded-2xl p-6 hidden animate-fade-in">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="font-bold text-slate-900 text-base">Liste de la classe</h3>
-                    <span id="grille-notes-info" class="text-xs text-slate-400"></span>
+                    <span id="grille-notes-info" class="text-xs text-slate-500 font-medium"></span>
                 </div>
-                <div id="grille-notes-body" class="divide-y divide-slate-100">
+                <div id="grille-notes-body" class="divide-y divide-slate-200/60">
                     <!-- lignes élèves injectées ici -->
                 </div>
-                <button type="button" onclick="enregistrerGrilleNotes()" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition text-sm">Enregistrer toutes les notes</button>
-                <div id="grille-notes-msg" class="mt-3 text-xs text-center hidden"></div>
+                <button type="button" onclick="enregistrerGrilleNotes()" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-indigo-600/30 text-sm">Enregistrer toutes les notes</button>
+                <div id="grille-notes-msg" class="mt-3 text-xs font-bold text-center hidden animate-fade-in"></div>
             </div>
         </section>
 
         <!-- ESPACE PARENT -->
-        <section id="dashboard-parent" class="space-y-8 hidden">
-            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                <h3 class="font-bold text-slate-900 text-sm uppercase mb-3">Rattacher un enfant</h3>
+        <section id="dashboard-parent" class="space-y-8 hidden animate-fade-in">
+            <div class="glass-card rounded-2xl p-6">
+                <h3 class="font-bold text-slate-900 text-sm uppercase tracking-wider mb-3">Rattacher un enfant</h3>
                 <form id="form-rattacher" onsubmit="handleRattacherEnfant(event)" class="flex flex-col sm:flex-row gap-3">
-                    <input type="text" id="rat-matricule" placeholder="Matricule (ex: MAT-2026)" required class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
-                    <input type="password" id="rat-code" placeholder="Code secret parent" required class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
-                    <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-6 py-2.5 rounded-xl transition text-sm">Lier l'enfant</button>
+                    <input type="text" id="rat-matricule" placeholder="Matricule (ex: MAT-2026)" required class="flex-1 px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-500">
+                    <input type="password" id="rat-code" placeholder="Code secret parent" required class="flex-1 px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-500">
+                    <button type="submit" class="bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-semibold px-6 py-2.5 rounded-xl transition-all shadow-md text-sm">Lier l'enfant</button>
                 </form>
             </div>
             <div id="parent-enfants-container" class="grid grid-cols-1 gap-6"></div>
         </section>
 
         <!-- ESPACE DIRECTEUR -->
-        <section id="dashboard-directeur" class="max-w-5xl mx-auto space-y-6 hidden">
-            <div class="bg-slate-900 rounded-2xl p-6 text-white shadow-xl flex justify-between items-center">
+        <section id="dashboard-directeur" class="max-w-5xl mx-auto space-y-6 hidden animate-fade-in">
+            <div class="glass-dark rounded-2xl p-6 text-white shadow-xl flex justify-between items-center">
                 <div>
-                    <span class="text-xs uppercase tracking-widest text-indigo-300 font-semibold">Consultation</span>
-                    <h2 class="text-2xl font-bold mt-1">Espace Directeur</h2>
+                    <span class="text-xs uppercase tracking-widest text-indigo-400 font-bold">Consultation</span>
+                    <h2 class="text-2xl font-extrabold mt-1">Espace Directeur</h2>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+            <div class="glass-card rounded-2xl p-6">
                 <h3 class="font-bold text-slate-900 text-base mb-4">Rechercher un élève</h3>
                 <form id="form-recherche-directeur" onsubmit="handleRechercheDirecteur(event)" class="flex flex-col sm:flex-row gap-3">
-                    <input type="text" id="dir-recherche" placeholder="Nom, prénom ou matricule..." required class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm">
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-xl transition text-sm">Rechercher</button>
+                    <input type="text" id="dir-recherche" placeholder="Nom, prénom ou matricule..." required class="flex-1 px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-500">
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-semibold px-6 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-600/20 text-sm">Rechercher</button>
                 </form>
                 <div id="dir-resultats" class="mt-4 space-y-2"></div>
             </div>
 
-            <div id="dir-fiche-eleve" class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hidden">
+            <div id="dir-fiche-eleve" class="glass-card rounded-2xl p-6 hidden animate-fade-in">
                 <div class="flex justify-between items-start mb-4">
                     <div>
-                        <h4 id="dir-eleve-nom" class="text-xl font-bold text-slate-900"></h4>
-                        <p id="dir-eleve-info" class="text-xs text-slate-400"></p>
+                        <h4 id="dir-eleve-nom" class="text-xl font-extrabold text-slate-900"></h4>
+                        <p id="dir-eleve-info" class="text-xs text-slate-500 font-medium"></p>
                     </div>
-                    <button type="button" onclick="fermerFicheDirecteur()" class="text-slate-400 hover:text-rose-600 text-sm">✕ Fermer</button>
+                    <button type="button" onclick="fermerFicheDirecteur()" class="text-slate-400 hover:text-rose-600 transition-colors text-sm font-semibold">✕ Fermer</button>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Matière</label>
-                        <select id="dir-filtre-matiere" onchange="rafraichirNotesDirecteur()" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Matière</label>
+                        <select id="dir-filtre-matiere" onchange="rafraichirNotesDirecteur()" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white/80 focus:ring-2 focus:ring-indigo-500">
                             <option value="">Toutes les matières</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Trimestre</label>
-                        <select id="dir-filtre-trimestre" onchange="rafraichirNotesDirecteur()" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white">
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Trimestre</label>
+                        <select id="dir-filtre-trimestre" onchange="rafraichirNotesDirecteur()" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none text-sm bg-white/80 focus:ring-2 focus:ring-indigo-500">
                             <option value="">Tous les trimestres</option>
                             <option value="1">Trimestre 1</option>
                             <option value="2">Trimestre 2</option>
@@ -277,9 +335,6 @@
         const SUPABASE_URL = "https://krikondxbeexmjruybeo.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtyaWtvbmR4YmVleG1qcnV5YmVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MzUyNzcsImV4cCI6MjEwNDExMTI3N30.QvFXypjUO_NFv4B-zFCzEsecRABGL8c_kVokzxuzHv8";
 
-        // Correctif 1 : on désactive la persistance de session (localStorage) pour que
-        // le site affiche TOUJOURS l'écran de connexion à l'ouverture, au lieu de
-        // reconnecter automatiquement le dernier compte utilisé sur ce navigateur.
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
                 persistSession: false,
@@ -303,8 +358,8 @@
         function switchAuthTab(tab) {
             document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
             document.getElementById('form-register').classList.toggle('hidden', tab !== 'register');
-            document.getElementById('tab-login').className = tab === 'login' ? "py-2.5 rounded-lg bg-white shadow-sm text-slate-900 transition" : "py-2.5 rounded-lg text-slate-500 hover:text-slate-900 transition";
-            document.getElementById('tab-register').className = tab === 'register' ? "py-2.5 rounded-lg bg-white shadow-sm text-slate-900 transition" : "py-2.5 rounded-lg text-slate-500 hover:text-slate-900 transition";
+            document.getElementById('tab-login').className = tab === 'login' ? "py-2.5 rounded-lg bg-white shadow-md text-slate-900 transition-all" : "py-2.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all";
+            document.getElementById('tab-register').className = tab === 'register' ? "py-2.5 rounded-lg bg-white shadow-md text-slate-900 transition-all" : "py-2.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all";
         }
 
         function showAuthError(msg) {
@@ -313,8 +368,6 @@
             errElem.classList.toggle('hidden', !msg);
         }
 
-        // --- SESSION : avec persistSession désactivé, getSession() ne retrouvera plus
-        // jamais d'ancienne session au rechargement -> l'écran de connexion s'affiche toujours.
         async function initSession() {
             try {
                 const { data: { session } } = await supabaseClient.auth.getSession();
@@ -327,7 +380,6 @@
                         document.getElementById('loading-screen').classList.add('hidden');
                         return;
                     } else {
-                        // Session invalide ou profil introuvable -> on force une reconnexion propre
                         await supabaseClient.auth.signOut();
                         currentUser = null;
                     }
@@ -416,8 +468,6 @@
             }
         }
 
-        // Masque tous les espaces avant d'afficher celui du rôle courant (corrige l'affichage
-        // qui pouvait rester bloqué sur "Espace Direction" d'une session précédente).
         function hideAllDashboards() {
             document.getElementById('dashboard-admin').classList.add('hidden');
             document.getElementById('dashboard-prof').classList.add('hidden');
@@ -447,7 +497,6 @@
             } else if (currentUser.role === 'DIRECTEUR') {
                 document.getElementById('dashboard-directeur').classList.remove('hidden');
             } else {
-                // Rôle inconnu : on évite d'afficher un espace par défaut, on repart sur la connexion
                 showAuthError("Rôle de compte inconnu, merci de contacter la direction.");
                 document.getElementById('auth-section').classList.remove('hidden');
             }
@@ -524,10 +573,10 @@
             document.querySelectorAll('.type-devoir-option').forEach(label => {
                 const input = label.querySelector('input');
                 if (input && input.checked) {
-                    label.classList.add('border-indigo-600', 'bg-indigo-50', 'text-indigo-700');
+                    label.classList.add('border-indigo-600', 'bg-indigo-50/90', 'text-indigo-700', 'shadow-sm');
                     label.classList.remove('border-slate-200', 'text-slate-600');
                 } else {
-                    label.classList.remove('border-indigo-600', 'bg-indigo-50', 'text-indigo-700');
+                    label.classList.remove('border-indigo-600', 'bg-indigo-50/90', 'text-indigo-700', 'shadow-sm');
                     label.classList.add('border-slate-200', 'text-slate-600');
                 }
             });
@@ -538,7 +587,6 @@
             document.getElementById('grille-notes-body').innerHTML = '';
         }
 
-        // Appelé quand matière / type d'évaluation / trimestre changent
         function rafraichirGrilleNotes() {
             const classeId = document.getElementById('note-classe-id').value;
             const matiereId = document.getElementById('note-matiere-id').value;
@@ -570,7 +618,6 @@
                 return;
             }
 
-            // Récupère les notes déjà saisies par ce prof pour cette matière/type/trimestre
             const eleveIds = eleves.map(e => e.id);
             const { data: notesExistantes } = await supabaseClient
                 .from('notes')
@@ -594,10 +641,10 @@
                 <div class="flex items-center gap-4 py-3" data-eleve-id="${e.id}">
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-semibold text-slate-800 truncate">${e.nom} ${e.prenom}</p>
-                        <p class="text-xs text-slate-400">${e.matricule}</p>
+                        <p class="text-xs text-slate-400 font-medium">${e.matricule}</p>
                     </div>
                     <input type="number" step="0.25" min="0" max="20" placeholder="/20"
-                        class="grille-note-input w-24 px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold text-indigo-600 text-center focus:ring-2 focus:ring-indigo-500 outline-none"
+                        class="grille-note-input w-24 px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold text-indigo-600 text-center focus:ring-2 focus:ring-indigo-500 outline-none bg-white/90 transition-all"
                         value="${valeurExistante}">
                 </div>`;
             }).join('');
@@ -643,8 +690,6 @@
                 return;
             }
 
-            // Upsert : insère les nouvelles notes, met à jour celles qui existent déjà
-            // (nécessite la contrainte unique sur eleve_id, matiere_id, prof_id, type_devoir, trimestre)
             const { error } = await supabaseClient
                 .from('notes')
                 .upsert(notesAEnregistrer, { onConflict: 'eleve_id,matiere_id,prof_id,type_devoir,trimestre' });
@@ -718,9 +763,6 @@
             }
         }
 
-        // Correctif 2 : les notes sont maintenant regroupées par matière.
-        // Le parent voit la liste des matières ; en cliquant sur une matière,
-        // il déplie le panneau et voit toutes les notes obtenues dans cette matière.
         async function loadParentDashboard() {
             const container = document.getElementById('parent-enfants-container');
             container.innerHTML = "";
@@ -731,12 +773,11 @@
                 .eq('parent_id', currentUser.id);
 
             if (!enfants || enfants.length === 0) {
-                container.innerHTML = `<div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-400 text-sm">Aucun élève rattaché.</div>`;
+                container.innerHTML = `<div class="glass-card p-8 rounded-2xl text-center text-slate-500 font-medium text-sm">Aucun élève rattaché.</div>`;
                 return;
             }
 
             enfants.forEach((e, idxEnfant) => {
-                // Regroupement des notes par matière
                 const notesParMatiere = {};
                 (e.notes || []).forEach(n => {
                     const nomMatiere = n.matieres ? n.matieres.nom_matiere : 'Matière';
@@ -748,7 +789,7 @@
 
                 let matieresHTML = "";
                 if (matieresNoms.length === 0) {
-                    matieresHTML = `<p class="py-4 text-center text-xs text-slate-400 italic">Aucune note.</p>`;
+                    matieresHTML = `<p class="py-4 text-center text-xs text-slate-400 italic">Aucune note enregistrée.</p>`;
                 } else {
                     matieresHTML = matieresNoms.map((nomMatiere, idxMatiere) => {
                         const notesMatiere = notesParMatiere[nomMatiere];
@@ -757,21 +798,21 @@
 
                         const lignesNotes = notesMatiere.map(n => `
                             <tr class="border-b border-slate-100">
-                                <td class="py-2.5 text-xs text-slate-500">${n.type_devoir || '-'}</td>
-                                <td class="py-2.5 text-xs text-slate-500">Trimestre ${n.trimestre || '-'}</td>
+                                <td class="py-2.5 text-xs text-slate-600 font-medium">${n.type_devoir || '-'}</td>
+                                <td class="py-2.5 text-xs text-slate-600">Trimestre ${n.trimestre || '-'}</td>
                                 <td class="py-2.5 text-xs text-slate-500">${n.appreciation || '-'}</td>
                                 <td class="py-2.5 text-right font-bold text-indigo-600">${n.note}/20 <span class="text-xs font-normal text-slate-400">(Coeff ${n.coefficient || 1})</span></td>
                             </tr>`).join('');
 
                         return `
-                        <div class="border border-slate-200 rounded-xl overflow-hidden">
-                            <button type="button" onclick="toggleMatierePanel('${panelId}')" class="w-full flex justify-between items-center px-4 py-3 bg-slate-50 hover:bg-slate-100 transition text-left">
+                        <div class="border border-slate-200/80 rounded-xl overflow-hidden bg-white/60">
+                            <button type="button" onclick="toggleMatierePanel('${panelId}')" class="w-full flex justify-between items-center px-4 py-3 bg-slate-50/80 hover:bg-slate-100/80 transition text-left">
                                 <span class="font-semibold text-sm text-slate-800">${nomMatiere}</span>
-                                <span class="text-xs text-slate-400 flex items-center gap-1">${compteur} <span id="${panelId}-chevron">›</span></span>
+                                <span class="text-xs text-slate-500 font-medium flex items-center gap-1">${compteur} <span id="${panelId}-chevron" class="transition-transform">›</span></span>
                             </button>
                             <div id="${panelId}" class="hidden px-4 py-2">
                                 <table class="w-full text-left text-sm">
-                                    <thead><tr class="text-xs text-slate-400 border-b border-slate-100">
+                                    <thead><tr class="text-xs font-bold text-slate-400 border-b border-slate-100 uppercase tracking-wider">
                                         <th class="pb-2">Type</th><th class="pb-2">Trimestre</th><th class="pb-2">Appréciation</th><th class="pb-2 text-right">Note</th>
                                     </tr></thead>
                                     <tbody>${lignesNotes}</tbody>
@@ -782,10 +823,10 @@
                 }
 
                 container.innerHTML += `
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-                        <div class="border-b border-slate-100 pb-3">
-                            <h4 class="text-xl font-bold text-slate-900">${e.prenom} ${e.nom}</h4>
-                            <p class="text-xs text-slate-400">Matricule: ${e.matricule} • Classe: ${e.classes ? e.classes.nom_classe : 'Non assignée'}</p>
+                    <div class="glass-card rounded-2xl p-6 space-y-4">
+                        <div class="border-b border-slate-200/60 pb-3">
+                            <h4 class="text-xl font-extrabold text-slate-900">${e.prenom} ${e.nom}</h4>
+                            <p class="text-xs text-slate-500 font-medium mt-0.5">Matricule: ${e.matricule} • Classe: ${e.classes ? e.classes.nom_classe : 'Non assignée'}</p>
                         </div>
                         <div class="space-y-2">${matieresHTML}</div>
                     </div>`;
@@ -800,7 +841,6 @@
             if (chevron) chevron.textContent = estOuvert ? '›' : '⌄';
         }
 
-        // ===================== ESPACE DIRECTEUR =====================
         let dirEleveCourant = null;
         let dirResultatsCache = [];
 
@@ -819,7 +859,7 @@
 
             if (error || !eleves || eleves.length === 0) {
                 dirResultatsCache = [];
-                resultatsDiv.innerHTML = `<p class="text-sm text-slate-400 text-center py-4">Aucun élève trouvé.</p>`;
+                resultatsDiv.innerHTML = `<p class="text-sm text-slate-500 font-medium text-center py-4">Aucun élève trouvé.</p>`;
                 return;
             }
 
@@ -827,12 +867,12 @@
 
             resultatsDiv.innerHTML = eleves.map((el, i) => `
                 <button type="button" onclick="ouvrirFicheDirecteur(${i})"
-                    class="w-full flex justify-between items-center px-4 py-3 bg-slate-50 hover:bg-indigo-50 rounded-xl transition text-left">
+                    class="w-full flex justify-between items-center px-4 py-3 bg-white/70 hover:bg-indigo-50/80 rounded-xl transition-all text-left border border-slate-200/50">
                     <span>
                         <span class="font-semibold text-sm text-slate-800">${el.nom} ${el.prenom}</span>
-                        <span class="block text-xs text-slate-400">${el.matricule} • ${el.classes ? el.classes.nom_classe : 'Non assignée'}</span>
+                        <span class="block text-xs text-slate-500 font-medium">${el.matricule} • ${el.classes ? el.classes.nom_classe : 'Non assignée'}</span>
                     </span>
-                    <span class="text-slate-300">›</span>
+                    <span class="text-slate-400 font-bold">›</span>
                 </button>
             `).join('');
         }
@@ -846,7 +886,6 @@
             document.getElementById('dir-eleve-info').textContent = `Matricule: ${eleve.matricule} • Classe: ${eleve.classes ? eleve.classes.nom_classe : 'Non assignée'}`;
             document.getElementById('dir-fiche-eleve').classList.remove('hidden');
 
-            // Charge les matières dans le filtre une seule fois
             const matiereSelect = document.getElementById('dir-filtre-matiere');
             if (matiereSelect.options.length <= 1) {
                 const { data: matieres } = await supabaseClient.from('matieres').select('id, nom_matiere');
@@ -887,7 +926,7 @@
 
             body.innerHTML = `
                 <table class="w-full text-left text-sm">
-                    <thead><tr class="text-xs text-slate-400 border-b border-slate-100">
+                    <thead><tr class="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200">
                         <th class="pb-2">Matière</th><th class="pb-2">Type</th><th class="pb-2">Trimestre</th><th class="pb-2 text-right">Note</th>
                     </tr></thead>
                     <tbody>
